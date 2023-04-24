@@ -1,0 +1,9 @@
+{
+    "name": "irisinteractive/fly-dynamic-image-resizer",
+    "description": "Fly Dynamic Image Resizer plugin for WordPress",
+    "type": "wordpress-plugin",
+    "license": "MIT",
+    "require-dev": {
+        "symfony/var-dumper": "^5.4"
+    }
+}
