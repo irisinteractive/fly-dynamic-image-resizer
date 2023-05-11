@@ -1,0 +1,53 @@
+#TB_ajaxContent {
+    max-width: 1000px;
+    max-height: 100%;
+    width: auto !important;
+    height: auto !important;
+}
+
+.fly-cropping-editor-container {
+
+}
+
+.fly-cropping-editor {
+    display: flex;
+    flex-flow: row wrap;
+    column-gap: 10px;
+}
+.fly-cropping-editor-title, .fly-cropping-editor-img, .fly-cropping-editor-info {
+    flex: 1 100%;
+}
+
+.fly-cropping-editor-img,
+.fly-cropping-editor-info {
+    flex: 1 auto;
+}
+
+.fly-cropping-editor-img {
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(72,94,144,.16);
+    padding: 10px;
+}
+
+.fly-cropping-editor-img img {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+}
+
+.fly-cropping-editor-info {
+    display: flex;
+    flex-flow: column;
+    border: 1px solid rgba(72,94,144,.16);
+    padding: 10px;
+    max-width: 150px;
+    width: 100%;
+}
+
+.fly-cropping-editor-save {
+    text-align: center;
+    padding: 20px 0;
+}

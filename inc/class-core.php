@@ -43,17 +43,42 @@ class Core {
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts_and_style' ));
 
-		add_action( 'wp_ajax_fly_override_cropping_page', array( $this, 'fly_override_cropping_page') );
-
-		$this->add_image_size('test-1', 500, 500, false);
-		$this->add_image_size('test-2', 500, 500, true);
-		$this->add_image_size('test-3', 128, 128, true);
+		add_action( 'wp_ajax_fly_override_cropping_page', array( $this, 'fly_override_cropping_page'), 0, 0 );
+		add_action( 'wp_ajax_fly_override_cropping_save', array( $this, 'fly_override_cropping_save'), 0, 0 );
 	}
 
 	public function fly_override_cropping_page() {
+		wp_enqueue_script('fly-images', plugins_url('/fly-dynamic-image-resizer/assets/src/js/image-cropping-editor.js' ), array( 'jquery', 'imgareaselect' ));
 		$image_sizes = array_filter( fly_get_all_image_sizes(), fn($size) => $size['crop'] );
 		$post_id = intval($_GET['postId']);
+		$overridden_sizes = $this->get_image_overridden_cropping( $post_id );
 		include WP_PLUGIN_DIR . '/fly-dynamic-image-resizer/admin/override-cropping-page.php';
+		wp_die();
+	}
+
+	public function fly_override_cropping_save() {
+		if ( ! isset( $_POST['nonce'] ) && wp_verify_nonce( $_POST['nonce'], 'fly_override_cropping_save' ) ) {
+			wp_send_json_error(__('Your are not allowed to do this action.', 'fly-images'), 403);
+		}
+
+		if ( ! isset( $_POST['postId'], $_POST['name'], $_POST['x'], $_POST['y'], $_POST['w'], $_POST['h'] ) ) {
+			wp_send_json_error(__('Missing parameters', 'fly-images'), 400);
+		}
+		if ( $this->override_image_cropping(
+			intval($_POST['postId']),
+			$_POST['name'],
+			intval($_POST['x']),
+			intval($_POST['y']),
+			intval($_POST['w']),
+			intval($_POST['h'])
+		)) {
+			wp_send_json_success(__('Cropping overridden for the size : ', 'fly-images') . $_POST['name']);
+		} else {
+			wp_send_json_error(null, 500);
+		}
+	}
+	public function fly_override_cropping_test() {
+		include WP_PLUGIN_DIR . '/fly-dynamic-image-resizer/admin/override-cropping-test.php';
 	}
 
 	public function enqueue_scripts_and_style() {
@@ -61,7 +86,7 @@ class Core {
 
 		if ( in_array( $pagenow, array( 'upload.php', 'post.php' ) ) && "attachment" === $post_type ) {
 			add_thickbox();
-			wp_enqueue_script('fly-images', plugins_url('/fly-dynamic-image-resizer/assets/src/js/admin.js' ), array( 'jquery', 'jcrop' ));
+			wp_enqueue_script('fly-images', plugins_url('/fly-dynamic-image-resizer/assets/src/js/admin.js' ), array( 'jquery', 'imgareaselect' ));
 			wp_enqueue_style('fly-images', plugins_url('/fly-dynamic-image-resizer/assets/src/css/admin.css' ));
 		}
 	}
@@ -69,9 +94,9 @@ class Core {
 	/**
 	 * @param int $postId
 	 *
-	 * @return array|mixed
+	 * @return array
 	 */
-	public function get_image_overridden_cropping( int $postId ) {
+	public function get_image_overridden_cropping( int $postId ): array {
 		return get_post_meta( $postId, 'fly_cropping_override', true ) ?: array();
 	}
 
@@ -80,16 +105,27 @@ class Core {
 	 * @param string $size
 	 * @param int $x
 	 * @param int $y
+	 * @param int $w
+	 * @param int $h
 	 *
-	 * @return bool|int
+	 * @return bool
 	 */
-	public function override_image_cropping( int $postId, string $size, int $x, int $y ) {
-		$overriddenImageCropping = $this->get_image_overridden_cropping( $postId );
-		$overriddenImageCropping[$size] = (object) array(
+	public function override_image_cropping( int $postId, string $size, int $x, int $y, int $w, int $h): bool {
+		if ( !isset( $this->_image_sizes[$size] ) ) {
+			return false;
+		}
+		$overridden_image_cropping = $this->get_image_overridden_cropping( $postId );
+		$cropping = (object) array(
 			'x' => $x,
-			'y' => $y
+			'y' => $y,
+			'w' => $w,
+			'h' => $h,
 		);
-		return update_post_meta( $postId, 'fly_cropping_override', $overriddenImageCropping);
+		if ( isset($overridden_image_cropping[$size]) && $overridden_image_cropping[$size] == $cropping ) {
+			return true;
+		}
+		$overridden_image_cropping[$size] = $cropping;
+		return true === update_post_meta( $postId, 'fly_cropping_override', $overridden_image_cropping);
 	}
 
 	/**
@@ -155,9 +191,9 @@ class Core {
 		$url                         = wp_nonce_url( admin_url( 'tools.php?page=fly-images&delete-fly-image&ids=' . $post->ID ), 'delete_fly_image', 'fly_nonce' );
 		$actions['fly-image-delete'] = '<a href="' . esc_url( $url ) . '" title="' . esc_attr( __( 'Delete all cached image sizes for this image', 'fly-images' ) ) . '">' . __( 'Delete Fly Images', 'fly-images' ) . '</a>';
 
-		if ( wp_attachment_is_image( $post->ID ) && current_user_can( 'edit-post', $post->ID ) ) {
+		if ( wp_attachment_is_image( $post->ID ) && current_user_can( 'edit-post', $post->ID ) && ! empty( array_filter( fly_get_all_image_sizes(), fn($size) => $size['crop'] ) ) ) {
 			add_thickbox();
-			$actions['fly-edit-cropping'] = "<a class='fly-edit-cropping' href='" . admin_url('admin-ajax.php') . "?action=fly_override_cropping_page&postId=" . $post->ID . "'>" . __( 'Override cropping', 'fly-images') . "</a>";
+			$actions['fly-edit-cropping'] = "<a class='fly-edit-cropping' href='" . admin_url('admin-ajax.php') . "?action=fly_override_cropping_page&postId=" . $post->ID . "'>" . __( 'Override cropped Fly sizes', 'fly-images') . "</a>";
 		}
 
 		return $actions;
@@ -357,7 +393,7 @@ class Core {
 			if ( ! is_wp_error( $image_editor ) ) {
 
 				if ( is_object( $crop ) ) {
-					$image_editor->crop( $crop->x, $crop->y, $width, $height );
+					$image_editor->crop( $crop->x, $crop->y, $crop->w, $crop->h );
 					$crop = false;
 				}
 
@@ -458,7 +494,7 @@ class Core {
 				return $position[0];
 			}, $crop ) );
 		} elseif ( is_object( $crop ) ) {
-			$crop_extension = '-x' . $crop->x . '-y' . $crop->y;
+			$crop_extension = '-x' . $crop->x . '-y' . $crop->y . '-w' . $crop->w . '-h' . $crop->h;
 		}
 
 		/**
