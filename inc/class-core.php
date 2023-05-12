@@ -77,9 +77,6 @@ class Core {
 			wp_send_json_error(null, 500);
 		}
 	}
-	public function fly_override_cropping_test() {
-		include WP_PLUGIN_DIR . '/fly-dynamic-image-resizer/admin/override-cropping-test.php';
-	}
 
 	public function enqueue_scripts_and_style() {
 		global $post, $pagenow, $post_type;
