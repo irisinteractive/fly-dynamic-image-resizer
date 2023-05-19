@@ -1,12 +1,13 @@
-window.addEventListener("DOMContentLoaded", () => {
-    window.ias = [];
-    document.querySelectorAll('.fly-edit-cropping>a').forEach( element =>
-        element.addEventListener( 'click', event => {
-            event.preventDefault();
-            let tb = tb_show(wp.i18n.__('Override cropped Fly sizes', 'fly-images'), event.target.href);
-        })
-    )
-})
+(function($) {
+    $(document).ready( function() {
+        document.querySelectorAll('a.fly-edit-cropping').forEach( element =>
+            element.addEventListener( 'click', event => {
+                event.preventDefault();
+                tb_show(event.target.dataset.tbTitle, event.target.href);
+            })
+        )
+    });
+})(jQuery);
 
 window.iasInstances = new Map();
 function switchTab(name, event) {
@@ -52,7 +53,7 @@ function cropImage(width, height, cropWidth, cropHeight) {
         x1 = Math.max(0, (width - newWidth) / 2);
         x2 = Math.min(width, x1 + newWidth);
         y1 = 0;
-        y2 = height;
+        y2 = height - 2;
         const croppedArea = (x2 - x1) * cropHeight;
         const diff = ((maxArea - croppedArea) / cropWidth) * cropWidth;
         x1 = Math.max(0, x1 - diff / 2);
@@ -60,7 +61,7 @@ function cropImage(width, height, cropWidth, cropHeight) {
     } else {
         const newHeight = cropWidth / cropRatio;
         x1 = 0;
-        x2 = width;
+        x2 = width - 2;
         y1 = Math.max(0, (height - newHeight) / 2);
         y2 = Math.min(height,y1 + newHeight);
         const croppedArea = cropWidth * (y2 - y1);
@@ -124,7 +125,7 @@ function overrideImageCropping(name) {
         x1: defaultSelection.x1,
         y1: defaultSelection.y1,
         x2: defaultSelection.x2,
-        y2: Math.min(height - 2, defaultSelection.y2),
+        y2: defaultSelection.y2,
         autoHide: false,
         persistent: true,
         onInit: (img, selection) => {
@@ -140,8 +141,12 @@ function overrideImageCropping(name) {
             infoLeftOffset.innerText = `${selection.x1}px`;
         }
     };
-    const instance = jQuery(image).imgAreaSelect(iasOptions);
-    window.iasInstances.set(sizeName, instance);
+
+    if (image.complete) {
+        window.iasInstances.set(sizeName, jQuery(image).imgAreaSelect(iasOptions));
+    } else {
+        image.onload = () => window.iasInstances.set(sizeName, jQuery(image).imgAreaSelect(iasOptions));
+    }
 }
 
 function flySaveCropping( button ) {

@@ -29,4 +29,8 @@ require_once JB_FLY_PLUGIN_PATH . '/inc/helpers.php';
 /**
  * Actions.
  */
+add_action( 'init', function () {
+	load_plugin_textdomain( 'fly-images', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
+});
+
 add_action( 'init', __NAMESPACE__ . '\\init' );
