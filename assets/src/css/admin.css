@@ -5,16 +5,22 @@
     height: auto !important;
 }
 
-.fly-cropping-editor-container {
+#TB_load,
+#TB_overlay {
+    z-index: 160000;
+}
 
+#TB_window {
+    z-index: 160010;
 }
 
 .fly-cropping-editor {
     display: flex;
     flex-flow: row wrap;
     column-gap: 10px;
+    margin-top: 5px;
 }
-.fly-cropping-editor-title, .fly-cropping-editor-img, .fly-cropping-editor-info {
+.fly-cropping-editor-img, .fly-cropping-editor-info {
     flex: 1 100%;
 }
 
@@ -33,9 +39,10 @@
 }
 
 .fly-cropping-editor-img img {
-    width: 100%;
-    max-width: 500px;
+    width: auto;
     height: auto;
+    max-width: 500px;
+    max-height: 500px;
 }
 
 .fly-cropping-editor-info {

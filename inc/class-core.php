@@ -45,6 +45,20 @@ class Core {
 
 		add_action( 'wp_ajax_fly_override_cropping_page', array( $this, 'fly_override_cropping_page'), 0, 0 );
 		add_action( 'wp_ajax_fly_override_cropping_save', array( $this, 'fly_override_cropping_save'), 0, 0 );
+
+		add_filter( 'attachment_fields_to_edit', array( $this, 'media_add_action'), 10, 2 );
+	}
+
+	public function media_add_action( $form_fields, $post ) {
+		if ( wp_attachment_is_image( $post->ID ) && current_user_can( 'edit-post', $post->ID ) && ! empty( array_filter( fly_get_all_image_sizes(), fn($size) => $size['crop'] ) ) ) {
+			$buttonText = __( 'Override cropped Fly sizes', 'fly-images');
+			$buttonUrl = admin_url('admin-ajax.php') . "?action=fly_override_cropping_page&postId=" . $post->ID;
+			$form_fields[ 'fly_action' ] = array(
+				'input' => 'html',
+				'html' => "<button class='button button-small button-primary fly-edit-cropping' onclick='tb_show(\"$buttonText\", \"$buttonUrl\")'>$buttonText</button>"
+			);
+		}
+		return $form_fields;
 	}
 
 	public function fly_override_cropping_page() {
@@ -79,9 +93,8 @@ class Core {
 	}
 
 	public function enqueue_scripts_and_style() {
-		global $post, $pagenow, $post_type;
-
-		if ( in_array( $pagenow, array( 'upload.php', 'post.php' ) ) && "attachment" === $post_type ) {
+		global $pagenow;
+		if ( in_array( $pagenow, array( 'upload.php', 'post.php' ) ) ) {
 			add_thickbox();
 			wp_enqueue_script('fly-images', plugins_url('/fly-dynamic-image-resizer/assets/src/js/admin.js' ), array( 'jquery', 'imgareaselect' ));
 			wp_enqueue_style('fly-images', plugins_url('/fly-dynamic-image-resizer/assets/src/css/admin.css' ));
@@ -122,7 +135,7 @@ class Core {
 			return true;
 		}
 		$overridden_image_cropping[$size] = $cropping;
-		return true === update_post_meta( $postId, 'fly_cropping_override', $overridden_image_cropping);
+		return false !== update_post_meta( $postId, 'fly_cropping_override', $overridden_image_cropping);
 	}
 
 	/**
