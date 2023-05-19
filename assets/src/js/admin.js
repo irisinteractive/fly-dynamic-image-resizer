@@ -3,7 +3,7 @@
         document.querySelectorAll('a.fly-edit-cropping').forEach( element =>
             element.addEventListener( 'click', event => {
                 event.preventDefault();
-                tb_show(wp.i18n.__('Override cropped Fly sizes', 'fly-images'), event.target.href);
+                tb_show(event.target.dataset.tbTitle, event.target.href);
             })
         )
     });
